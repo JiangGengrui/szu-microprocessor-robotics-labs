@@ -1,0 +1,11 @@
+# 统一 LF 入库，避免跨平台行尾噪音
+* text=auto eol=lf
+
+# 二进制文件不参与行尾转换
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.zip binary
+*.elf binary
+*.bin binary
