@@ -20,7 +20,7 @@
 
 | | |
 |---|---|
-| **4 个可独立烧录的应用** | 约 2 万行自研 C 代码，统一的分层结构，任一应用可单独导入编译 |
+| **4 个可独立烧录的应用** | 约 1.9 万行自研 C 代码（不含中文字库），统一的分层结构，任一应用可单独导入编译 |
 | **板端人脸识别** | MSE / LBP / 颜色直方图 / PCA 四种匹配器全部手写，25 张图库，开放集判定，单次匹配 **0.3–4.2 ms** |
 | **1024×600 实时预览** | DCMI 逐行 DMA + DMA2D 行搬运 + 三缓冲 VBR 换页，满屏稳定、无撕裂无滚动 |
 | **定时器全覆盖** | 1 ms 基准、3 路 1 kHz PWM、PWM 输入捕获（100 Hz–10 kHz，实测误差 **0.0%**）、RCR/OPM/MOE/BKIN 硬件定量与急停 |
@@ -29,12 +29,12 @@
 
 ## 应用
 
-| 应用 | 功能 | 关键技术 | 规模 |
+| 应用 | 功能 | 关键技术 | 规模（行，不含字库） |
 |------|------|----------|------|
-| [`apps/led-marquee`](apps/led-marquee/) | 8 路 LED、4 种灯效、4 键切换、蜂鸣器提示 | GPIO 位映射、边沿检测消抖、PCF8574 I²C 扩展、非阻塞时间片 | ~2.7k 行 |
-| [`apps/timer-bench`](apps/timer-bench/) | OLED 菜单 + 4 个定时器子应用 | TIM6 时间基准、TIM3/TIM4 多通道 PWM、PWM Input 捕获、TIM1 RCR/OPM/BKIN | ~5.2k 行 |
-| [`apps/home-hub`](apps/home-hub/) | 温湿度/电压采集、中控首页、阈值预警、摄像头预览 | DHT11 单总线、ADC1、LTDC + SDRAM 帧缓冲、DCMI 逐行 DMA、DMA2D | ~5.2k 行 |
-| [`apps/face-id`](apps/face-id/) | 5 人录入、4 种算法识别、开放集判定 | MSE、LBP、颜色直方图、SVD/PCA、SPI NOR 图库、DMA2D 取景框 | ~7.5k 行 |
+| [`apps/led-marquee`](apps/led-marquee/) | 8 路 LED、4 种灯效、4 键切换、蜂鸣器提示 | GPIO 位映射、边沿检测消抖、PCF8574 I²C 扩展、非阻塞时间片 | 2.7k |
+| [`apps/timer-bench`](apps/timer-bench/) | OLED 菜单 + 4 个定时器子应用 | TIM6 时间基准、TIM3/TIM4 多通道 PWM、PWM Input 捕获、TIM1 RCR/OPM/BKIN | 4.4k |
+| [`apps/home-hub`](apps/home-hub/) | 温湿度/电压采集、中控首页、阈值预警、摄像头预览 | DHT11 单总线、ADC1、LTDC + SDRAM 帧缓冲、DCMI 逐行 DMA、DMA2D | 4.7k |
+| [`apps/face-id`](apps/face-id/) | 5 人录入、4 种算法识别、开放集判定 | MSE、LBP、颜色直方图、SVD/PCA、SPI NOR 图库、DMA2D 取景框 | 6.9k |
 | [`rl-env`](rl-env/) | 国产化系统上的强化学习环境 | conda 隔离、PyTorch CPU wheel、Gymnasium、Stable-Baselines3 | Python |
 
 ## 架构
@@ -159,7 +159,7 @@ export CUBEIDE="/c/ST/STM32CubeIDE_2.2.0/STM32CubeIDE/stm32cubeide.exe"
 1. **单线程 + 时间片，不引入 RTOS。** 周期任务全部由 `HAL_GetTick()` 差值驱动，主循环从不阻塞；按键扫描周期本身就是消抖窗口，长按只在"松开→按下"边沿触发一次。
 2. **先算参数，再看现象。** 定时器 PSC/ARR、LTDC 像素时钟、DMA 传输计数、SDRAM 地址划分都先按公式算出再写配置，异常时回读寄存器确认，而不是试参数。
 3. **能交给硬件的绝不留给软件。** 固定 N 个脉冲用 RCR + 单脉冲模式而非中断停表；故障急停用 BKIN 清零 MOE；图像行搬运用 DMA2D 而非 CPU `memcpy`；显示换页用 LTDC VBR，避开撕裂。
-4. **先离线验证，再上板。** 灯效与按键逻辑用 mock HAL 在 PC 上编译真实源码做断言（18/18 通过）；人脸识别的分数分布用 ORL 数据集在 PC 端复现同一链路，用来定阈值、分析可分性。
+4. **先离线验证，再上板。** 开发期用 mock HAL 在 PC 上编译灯效与按键的真实源码做断言（18/18 通过）；人脸识别的分数分布用 ORL 数据集在 PC 端复现同一链路，用来定阈值、分析可分性。
 5. **资源按预算分配，不按习惯分配。** 192 KiB 片内 SRAM 放不下任何一帧 RGB 画面，因此帧缓冲、算法工作区全部落在 SDRAM 的固定地址段；模型、图库、栈的大小都在 `face_cfg.h` 一处集中定义。
 
 ## 实测数据
